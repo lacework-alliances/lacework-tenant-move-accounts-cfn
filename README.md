@@ -22,7 +22,6 @@ Specify the following Basic Configuration parameters:
    * Enter the **From Lacework Tenant/Sub-account Name** that currently has the accounts.
    * Enter the **To Lacework Tenant/Sub-account Name** where you want to move the accounts to.
    * Enter the **AWS Accounts** as a comma-separated list of AWS Accounts IDs or leave blank to move all of the accounts.
-   ![sub_account_configuration](https://user-images.githubusercontent.com/6440106/154780411-50b270b5-4246-4e12-acb1-b1d4997b5671.png)
 3. Click **Next** through to your stack **Review**.
 4. Accept the AWS CloudFormation terms and click **Create stack**.
 
