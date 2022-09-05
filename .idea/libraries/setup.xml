@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="setup">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/functions/packages/setup/LaceworkCTSetup.zip!/" />
+      <root url="jar://$PROJECT_DIR$/functions/packages/setup/LaceworkCTSetup1.4.5.zip!/" />
+      <root url="jar://$PROJECT_DIR$/functions/packages/setup/LaceworkCTSetup1.4.4.zip!/" />
+      <root url="jar://$PROJECT_DIR$/functions/packages/setup/LaceworkCTSetup1.4.3.zip!/" />
+      <root url="jar://$PROJECT_DIR$/functions/packages/setup/LaceworkCTSetup1.4.6.zip!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

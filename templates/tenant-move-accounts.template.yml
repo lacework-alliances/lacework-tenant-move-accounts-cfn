@@ -1,0 +1,227 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: "This is a CloudFormation template that can move accounts between Lacework tenants/sub-accounts in bulk."
+Metadata:
+  AWS::CloudFormation::Interface: 
+    ParameterGroups:
+      - Label:
+          default: "Basic Configuration"
+        Parameters:
+          - LaceworkURL
+          - LaceworkAccessKeyID
+          - LaceworkSecretKey
+          - FromTenantName
+          - ToTenantName
+          - AwsAccounts
+      - Label:
+          default: "Advanced Configuration (Optional)"
+          Parameters:
+            - S3BucketName
+            - S3KeyPrefix
+    ParameterLabels:
+      LaceworkURL:
+        default: Your Lacework URL
+      LaceworkAccessKeyID:
+        default: Lacework Access Key ID
+      LaceworkSecretKey:
+        default: Lacework Secret Key
+      FromTenantName:
+        default: From Tenant/Sub-account Name
+      ToTenantName:
+        default: To Tenant/Sub-account Name
+      AwsAccounts:
+        default: AWS Accounts
+      S3BucketName:
+        default: Cloudformation S3 Bucket
+      S3KeyPrefix:
+        default: Cloudformation S3 Key Prefix
+Parameters:
+  # basic
+  LaceworkURL:
+    Type: String
+    Description: "Enter your Lacework URL. ie. account.lacework.net."
+    MinLength: '1'
+    AllowedPattern: '(.+?)\.lacework\.net'
+    ConstraintDescription: "Invalid Lacework URL."
+  AwsAccounts:
+    Type: String
+    Description: "Provide a comma-separated list of AWS Accounts to move. Leave blank for all accounts."
+    AllowedPattern: '^$|^[a-zA-Z0-9., ]+(?:-[a-zA-Z0-9., ]+)*$'
+    ConstraintDescription: "Invalid list entered. The account list may contain alphanumeric characters, commas and dashes only."
+  FromTenantName:
+    Type: String
+    Description: "Move accounts from this tenant/sub-account."
+    AllowedPattern: '^$|^[a-zA-Z0-9.]+(?:-[a-zA-Z0-9.]+)*$'
+    ConstraintDescription: "Invalid Lacework tenant/sub-account name entered. The tenant/sub-account name may contain alphanumeric characters and dashes only."
+  ToTenantName:
+    Type: String
+    Description: "Move accounts to this tenant/sub-account."
+    AllowedPattern: '^$|^[a-zA-Z0-9.]+(?:-[a-zA-Z0-9.]+)*$'
+    ConstraintDescription: "Invalid Lacework tenant/sub-account name entered. The tenant name may contain alphanumeric characters and dashes only."
+  LaceworkAccessKeyID:
+    Type: String
+    MinLength: '1'
+    AllowedPattern: '^[-a-zA-Z0-9_]*$'
+    ConstraintDescription: "The Lacework API Access Key ID contains alphanumeric characters and symbols only."
+    Description: "Enter the Lacework API Secret Key ID. See https://support.lacework.com/hc/en-us/articles/360011403853-Generate-API-Access-Keys-and-Tokens."
+  LaceworkSecretKey:
+    Type: String
+    NoEcho: true
+    MinLength: '1'
+    AllowedPattern: '^[a-zA-Z0-9_]*$'
+    ConstraintDescription: "The Lacework API Secret Key contains alphanumeric characters and symbols only."
+    Description: "Enter the Lacework API Secret Key. See https://support.lacework.com/hc/en-us/articles/360011403853-Generate-API-Access-Keys-and-Tokens."
+# advanced
+  S3BucketName:
+    Type: String
+    Default: lacework-alliances
+    MinLength: '1'
+    Description: "Enter the S3 bucket for assets. Use this if you want to customize your deployment."
+  S3KeyPrefix:
+    Type: String
+    Default: lacework-tenant-move-accounts-cfn
+    MinLength: '1'
+    Description: "Enter the S3 key prefix for Cloudformation assets directory. Use this if you want to customize your deployment."
+Resources:
+  LambdaZipsBucket:
+    Type: AWS::S3::Bucket
+
+  CopyZips:
+    Type: Custom::CopyZips
+    Properties:
+      ServiceToken: !GetAtt 'CopyZipsFunction.Arn'
+      DestBucket: !Ref 'LambdaZipsBucket'
+      SourceBucket: !Ref 'S3BucketName'
+      Prefix: !Ref 'S3KeyPrefix'
+      Objects:
+        - '/lambda/Move.zip'
+
+  CopyZipsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - !Sub 'arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
+      Path: /
+      Policies:
+        - PolicyName: lambda-copier
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:GetObjectTagging
+                Resource:
+                  - !Sub 'arn:${AWS::Partition}:s3:::${S3BucketName}/${S3KeyPrefix}*'
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:DeleteObject
+                  - s3:PutObjectTagging
+                Resource:
+                  - !Sub 'arn:${AWS::Partition}:s3:::${LambdaZipsBucket}/${S3KeyPrefix}*'
+
+  CopyZipsFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: Copies objects from the S3 bucket to a new location.
+      Handler: index.handler
+      Runtime: python3.7
+      Role: !GetAtt 'CopyZipsRole.Arn'
+      Timeout: 240
+      Code:
+        ZipFile: |
+          import json
+          import logging
+          import threading
+          import boto3
+          import cfnresponse
+          def copy_objects(source_bucket, dest_bucket, prefix, objects):
+              s3 = boto3.client('s3')
+              for o in objects:
+                  key = prefix + o
+                  copy_source = {
+                      'Bucket': source_bucket,
+                      'Key': key
+                  }
+                  print('copy_source: %s' % copy_source)
+                  print('dest_bucket = %s'%dest_bucket)
+                  print('key = %s' %key)
+                  s3.copy_object(CopySource=copy_source, Bucket=dest_bucket,
+                        Key=key)
+          def delete_objects(bucket, prefix, objects):
+              s3 = boto3.client('s3')
+              objects = {'Objects': [{'Key': prefix + o} for o in objects]}
+              s3.delete_objects(Bucket=bucket, Delete=objects)
+          def timeout(event, context):
+              logging.error('Execution is about to time out, sending failure response to CloudFormation')
+              cfnresponse.send(event, context, cfnresponse.FAILED, {}, None)
+          def handler(event, context):
+              # make sure we send a failure to CloudFormation if the function
+              # is going to timeout
+              timer = threading.Timer((context.get_remaining_time_in_millis()
+                        / 1000.00) - 0.5, timeout, args=[event, context])
+              timer.start()
+              print('Received event: %s' % json.dumps(event))
+              status = cfnresponse.SUCCESS
+              try:
+                  source_bucket = event['ResourceProperties']['SourceBucket']
+                  dest_bucket = event['ResourceProperties']['DestBucket']
+                  prefix = event['ResourceProperties']['Prefix']
+                  objects = event['ResourceProperties']['Objects']
+                  if event['RequestType'] == 'Delete':
+                      delete_objects(dest_bucket, prefix, objects)
+                  else:
+                      copy_objects(source_bucket, dest_bucket, prefix, objects)
+              except Exception as e:
+                  logging.error('Exception: %s' % e, exc_info=True)
+                  status = cfnresponse.FAILED
+              finally:
+                  timer.cancel()
+                  cfnresponse.send(event, context, status, {}, None)
+
+  MoveFunction:
+    Type: AWS::Lambda::Function
+    DependsOn: CopyZips
+    Properties:
+      Code:
+        S3Bucket: !Ref LambdaZipsBucket
+        S3Key: !Join ['', [!Ref 'S3KeyPrefix', '/lambda/Move.zip']]
+      Handler: move.lambda_handler
+      Runtime: python3.7
+      Timeout: 900
+      Environment:
+        Variables:
+          lacework_url: !Ref LaceworkURL
+          from_tenant_name: !Ref FromTenantName
+          to_tenant_name: !Ref ToTenantName
+          access_key_id: !Ref LaceworkAccessKeyID
+          secret_key: !Ref LaceworkSecretKey
+          aws_accounts: !Ref AwsAccounts
+      Role: !GetAtt MoveFunctionRole.Arn
+
+  MoveFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: lambda.amazonaws.com
+          Action: sts:AssumeRole
+      Path: /
+      ManagedPolicyArns:
+      - !Sub 'arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
+
+  Move: # this will launch the move function and process the accounts.
+    Type: AWS::CloudFormation::CustomResource
+    Properties:
+      ServiceToken:
+        !GetAtt MoveFunction.Arn

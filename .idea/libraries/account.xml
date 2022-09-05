@@ -1,0 +1,14 @@
+<component name="libraryTable">
+  <library name="account">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/functions/packages/account/LaceworkCTAccount1.4.4.zip!/" />
+      <root url="jar://$PROJECT_DIR$/functions/packages/account/LaceworkCTAccount1.4.3.zip!/" />
+      <root url="jar://$PROJECT_DIR$/functions/packages/account/LaceworkCTAccount.zip!/" />
+      <root url="jar://$PROJECT_DIR$/functions/packages/account/LaceworkCTAccount1.4.5.zip!/" />
+      <root url="jar://$PROJECT_DIR$/functions/packages/account/LaceworkCTAccount1.4.1.zip!/" />
+      <root url="jar://$PROJECT_DIR$/functions/packages/account/LaceworkCTAccount1.4.2.zip!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
