@@ -21,9 +21,9 @@ Metadata:
       LaceworkURL:
         default: Your Lacework URL
       LaceworkAccessKeyID:
-        default: Lacework Access Key ID
+        default: Lacework Organization Admin Access Key ID
       LaceworkSecretKey:
-        default: Lacework Secret Key
+        default: Lacework Organization Admin Secret Key
       FromTenantName:
         default: From Tenant/Sub-account Name
       ToTenantName:
@@ -61,14 +61,14 @@ Parameters:
     Type: String
     MinLength: '1'
     AllowedPattern: '^[-a-zA-Z0-9_]*$'
-    ConstraintDescription: "The Lacework API Access Key ID contains alphanumeric characters and symbols only."
+    ConstraintDescription: "The Lacework Organization Admin API Access Key ID contains alphanumeric characters and symbols only."
     Description: "Enter the Lacework API Secret Key ID. See https://support.lacework.com/hc/en-us/articles/360011403853-Generate-API-Access-Keys-and-Tokens."
   LaceworkSecretKey:
     Type: String
     NoEcho: true
     MinLength: '1'
     AllowedPattern: '^[a-zA-Z0-9_]*$'
-    ConstraintDescription: "The Lacework API Secret Key contains alphanumeric characters and symbols only."
+    ConstraintDescription: "The Lacework Organization Admin  API Secret Key contains alphanumeric characters and symbols only."
     Description: "Enter the Lacework API Secret Key. See https://support.lacework.com/hc/en-us/articles/360011403853-Generate-API-Access-Keys-and-Tokens."
 # advanced
   S3BucketName:

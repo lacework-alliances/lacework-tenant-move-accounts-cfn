@@ -18,7 +18,7 @@ and then optionally specify the list of AWS accounts to move. Leave the list of 
 Specify the following Basic Configuration parameters:
    * Enter a **Stack name** for the stack.
    * Enter **Your Lacework URL**.
-   * Enter your **Lacework Access Key ID** and **Secret Key** that you copied from your previous API Keys file.
+   * Enter your Organization Admin **Lacework Access Key ID** and **Secret Key** that you copied from your API Keys file. See [here](https://docs.lacework.com/console/generate-api-access-keys-and-tokens).
    * Enter the **From Lacework Tenant/Sub-account Name** that currently has the accounts.
    * Enter the **To Lacework Tenant/Sub-account Name** where you want to move the accounts to.
    * Enter the **AWS Accounts** as a comma-separated list of AWS Accounts IDs or leave blank to move all of the accounts.
